@@ -121,4 +121,28 @@ class LogicTest {
         assertFalse(close.any { it.names == "Lucy Adams" }) // 1st cousin once removed
         assertNull(rel.relationship("@NOPE@"))
     }
+
+    @Test fun duplicateSourceRecordsShowOnce() {
+        val ged = """
+            0 @I1@ INDI
+            1 NAME Kevin Shelby /Adams/
+            1 BIRT
+            2 DATE 28 OCT 1971
+            2 PLAC Memphis, Shelby, Tennessee, USA
+            1 BIRT
+            2 DATE 28 OCT 1971
+            2 PLAC MEMPHIS TENNESSEE
+            1 DEAT
+            2 DATE 11 APR 1994
+            2 PLAC Bartlett, Shelby County, Tennessee, USA
+            1 DEAT
+            2 DATE 11 APR 1994
+            2 PLAC MEMPHIS TENNESSEE
+        """.trimIndent()
+        val t = GedcomParser.parse(ged)
+        val engine = EventEngine(t, LivingCalculator(t, 2026))
+        assertEquals(2, engine.allEvents.size)
+        assertEquals(1, engine.on(LocalDate.of(2026, 10, 28)).size)
+        assertEquals(1, engine.on(LocalDate.of(2026, 4, 11)).size)
+    }
 }

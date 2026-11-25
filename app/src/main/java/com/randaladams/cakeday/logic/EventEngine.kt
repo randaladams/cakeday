@@ -75,10 +75,18 @@ class EventEngine(
     init {
         val list = mutableListOf<AnnualEvent>()
         for (p in tree.people.values) {
+            // Many exports (Ancestry especially) repeat an event once per source.
+            // Birth, death, christening and burial happen once, so only the first usable
+            // record counts (GEDCOM lists the preferred one first). Other events are
+            // merged when the label and date match.
+            val seen = HashSet<String>()
             for (e in p.events) {
                 val d = e.date ?: continue
                 if (!d.hasMonthDay) continue
                 if (!includeApproximate && d.isApproximate) continue
+                val dedupeKey = if (e.tag in ONCE_PER_LIFE) e.tag
+                    else "${e.tag}|${e.label.lowercase()}|${d.year}-${d.month}-${d.day}"
+                if (!seen.add(dedupeKey)) continue
                 val kind = when (e.tag) {
                     "BIRT" -> EventKind.BIRTHDAY
                     "DEAT" -> EventKind.DEATH
@@ -89,6 +97,7 @@ class EventEngine(
                 list += AnnualEvent(kind, listOf(p.id), null, e.label, d, e.place)
             }
         }
+        val seenCouples = HashSet<String>()
         for (f in tree.families.values) {
             if (f.isDivorced) continue
             val m = f.marriage ?: continue
@@ -96,6 +105,8 @@ class EventEngine(
             if (!d.hasMonthDay) continue
             if (!includeApproximate && d.isApproximate) continue
             if (f.spouseIds.isEmpty()) continue
+            // the same couple entered twice as separate families
+            if (!seenCouples.add(f.spouseIds.sorted().joinToString() + "|${d.year}-${d.month}-${d.day}")) continue
             list += AnnualEvent(EventKind.ANNIVERSARY, f.spouseIds, f.id, m.label, d, m.place)
         }
         allEvents = list
@@ -142,6 +153,7 @@ class EventEngine(
         e.personIds.mapNotNull { tree.person(it)?.fullName }.joinToString(" & ")
 
     companion object {
+        private val ONCE_PER_LIFE = setOf("BIRT", "DEAT", "CHR", "BAPM", "BURI", "CREM")
         private fun key(month: Int, day: Int) = month * 100 + day
 
         fun dateIn(month: Int, day: Int, year: Int): LocalDate? = try {

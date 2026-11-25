@@ -221,11 +221,20 @@ private fun LazyListScope.upcoming(s: TreeState, p: Person) {
 private fun LazyListScope.lifeEvents(p: Person) {
     if (p.events.isEmpty()) return
     item { SectionTitle("Life events") }
-    p.events.forEach { e ->
+    // Merge copies of the same event (same type and date) that came from different sources
+    val groups = p.events.groupBy { "${it.tag}|${it.label}|${it.date?.display()}" }.values
+    groups.forEach { copies ->
+        val e = copies.first()
+        val places = copies.mapNotNull { it.place }
+            .distinctBy { it.lowercase().replace(Regex("[^a-z]"), "") }
         item {
             Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
                 Text("${e.label}: ${e.date?.display() ?: "date unknown"}")
-                e.place?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                places.firstOrNull()?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                if (places.size > 1) Text(
+                    "Also recorded as: " + places.drop(1).joinToString("; "),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline
+                )
             }
         }
     }
