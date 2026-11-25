@@ -119,6 +119,11 @@ private fun Header(vm: MainViewModel, s: TreeState, p: Person) {
             )
             s.homePerson != null -> Text("No family connection to ${s.homePerson?.fullName} found", style = MaterialTheme.typography.bodySmall)
         }
+        if (rel != null && rel.kind != com.randaladams.cakeday.logic.Relationship.Kind.SELF) {
+            OutlinedButton(onClick = { vm.push(Screen.RelationshipPath(p.id)) }, Modifier.padding(top = 6.dp)) {
+                Text("How are we related?")
+            }
+        }
         if (s.settings.homePersonId != p.id) {
             TextButton(onClick = { vm.setHomePerson(p.id) }) {
                 Icon(Icons.Default.Home, null); Spacer(Modifier.width(6.dp)); Text("Make home person")

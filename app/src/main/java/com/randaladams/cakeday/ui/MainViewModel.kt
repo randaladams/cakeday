@@ -24,6 +24,7 @@ sealed interface Screen {
     data class EditPerson(val id: String) : Screen
     data object Settings : Screen
     data object PickHomePerson : Screen
+    data class RelationshipPath(val id: String) : Screen
 }
 
 enum class Tab(val label: String) { DAY("Day"), WEEK("Week"), MONTH("Month"), SEARCH("Search") }

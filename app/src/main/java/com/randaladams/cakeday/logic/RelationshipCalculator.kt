@@ -134,6 +134,65 @@ class RelationshipCalculator(private val tree: FamilyTree, private val homeId: S
         return a.size == 2 && b.size == 2 && a != b
     }
 
+    enum class LinkType { PARENT, CHILD, SIBLING, SPOUSE }
+
+    /** One link in the chain: [fromId] is the [link] of [toId], e.g. "Randal" is the "son" of "George". */
+    data class PathStep(val fromId: String, val toId: String, val type: LinkType, val link: String)
+
+    /**
+     * The chain of people from the home person to [targetId], each step being a parent,
+     * child, sibling or spouse. It climbs to the shared ancestor and comes back down;
+     * marriage links are used only when needed. Returns null if there is no home person or no connection.
+     */
+    fun path(targetId: String): List<PathStep>? {
+        val home = homeId ?: return null
+        if (tree.people[home] == null || tree.people[targetId] == null) return null
+        if (home == targetId) return emptyList()
+
+        val dist = HashMap<String, Double>()
+        val prev = HashMap<String, Pair<String, LinkType>>()
+        val queue = java.util.PriorityQueue<Pair<Double, String>>(compareBy { it.first })
+        dist[home] = 0.0
+        queue.add(0.0 to home)
+        var expanded = 0
+        while (queue.isNotEmpty() && expanded < 200_000) {
+            val (d, u) = queue.poll()
+            if (d > (dist[u] ?: Double.MAX_VALUE)) continue
+            if (u == targetId) break
+            expanded++
+            fun relax(v: String, type: LinkType, w: Double) {
+                val nd = d + w
+                if (nd < (dist[v] ?: Double.MAX_VALUE)) {
+                    dist[v] = nd; prev[v] = u to type; queue.add(nd to v)
+                }
+            }
+            tree.parentsOf(u).forEach { relax(it, LinkType.PARENT, 1.0) }
+            tree.childrenOf(u).forEach { relax(it, LinkType.CHILD, 1.0) }
+            // Going up to the shared parent and back down costs 2, so a sibling link (2.1)
+            // is only used when the parents aren't named in the file.
+            tree.siblingsOf(u).forEach { relax(it, LinkType.SIBLING, 2.1) }
+            tree.spousesOf(u).forEach { relax(it, LinkType.SPOUSE, 2.5) }
+        }
+        if (targetId !in prev) return null
+
+        // Walk back from the target, then describe each link from the earlier person's side
+        val steps = mutableListOf<PathStep>()
+        var cur = targetId
+        while (cur != home) {
+            val (before, type) = prev.getValue(cur)
+            val sex = tree.people[before]?.sex ?: Sex.U
+            val word = when (type) {
+                LinkType.PARENT -> gendered(sex, "son", "daughter", "child")     // cur is before's parent
+                LinkType.CHILD -> gendered(sex, "father", "mother", "parent")    // cur is before's child
+                LinkType.SIBLING -> gendered(sex, "brother", "sister", "sibling")
+                LinkType.SPOUSE -> gendered(sex, "husband", "wife", "spouse")
+            }
+            steps += PathStep(before, cur, type, word)
+            cur = before
+        }
+        return steps.reversed()
+    }
+
     companion object {
         fun gendered(sex: Sex, m: String, f: String, u: String) = when (sex) { Sex.M -> m; Sex.F -> f; Sex.U -> u }
 

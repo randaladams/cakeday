@@ -145,4 +145,15 @@ class LogicTest {
         assertEquals(1, engine.on(LocalDate.of(2026, 10, 28)).size)
         assertEquals(1, engine.on(LocalDate.of(2026, 4, 11)).size)
     }
+
+    @Test fun relationshipPath() {
+        fun describe(id: String) = rel.path(id)!!.joinToString(" / ") {
+            "${tree.people.getValue(it.fromId).givenName} is the ${it.link} of ${tree.people.getValue(it.toId).givenName}"
+        }
+        assertEquals("Randal is the son of George", describe("@I2@"))
+        assertEquals("Randal is the son of George / George is the son of Harold / Harold is the father of Frank / Frank is the father of Tom", describe("@I7@"))
+        assertEquals("Randal is the husband of Karen / Karen is the sister of Bill", describe("@I10@"))
+        assertEquals("Randal is the son of Mary", describe("@I3@"))
+        assertEquals(emptyList<Any>(), rel.path("@I1@"))
+    }
 }

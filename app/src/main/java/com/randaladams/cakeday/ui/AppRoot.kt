@@ -61,6 +61,7 @@ fun AppRoot(vm: MainViewModel) {
         is Screen.EditPerson -> EditPersonScreen(vm, s, screen.id)
         Screen.Settings -> SettingsScreen(vm, s, snackbar)
         Screen.PickHomePerson -> PickHomeScreen(vm, s)
+        is Screen.RelationshipPath -> RelationshipPathScreen(vm, s, screen.id)
     }
 }
 
