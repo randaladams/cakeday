@@ -5,6 +5,12 @@ An Android app that reads a family-tree GEDCOM (`.ged`) file and shows each day'
 - **Celebrate**: birthdays, wedding anniversaries and other events for people who are living, or calculated to be living.
 - **Remember**: the same kinds of events, plus death and burial anniversaries, for people who are no longer living.
 
+## Download
+
+**[Download the latest APK](https://github.com/randaladams/cakeday/releases/download/latest-build/cakeday.apk)**. GitHub Actions rebuilds it on every push to `main`.
+
+On your phone, open the link and tap the downloaded file. Android will ask you to allow installs from your browser the first time.
+
 ## Features
 
 | | |
